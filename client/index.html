@@ -1,0 +1,223 @@
+<!doctype html>
+<html>
+  <head>
+    <!-- thank the holy savior of w3 schools and my dry ass at 3am -->
+    <title>Socket.IO chat</title>
+  
+    <!-- cattpucion:3 -->
+    <style>
+        :root {
+    --rosewater: #f5e0dc;
+    --flamingo: #f2cdcd;
+    --pink: #f5c2e7;
+    --mauve: #cba6f7;
+    --red: #f38ba8;
+    --maroon: #eba0ac;
+    --peach: #fab387;
+    --yellow: #f9e2af;
+    --green: #a6e3a1;
+    --teal: #94e2d5;
+    --sky: #89dceb;
+    --sapphire: #74c7ec;
+    --blue: #89b4fa;
+    --lavender: #b4befe;
+    --text: #cdd6f4;
+    --subtext1: #bac2de;
+    --subtext0: #a6adc8;
+    --overlay2: #9399b2;
+    --overlay1: #7f849c;
+    --overlay0: #6c7086;
+    --surface2: #585b70;
+    --surface1: #45475a;
+    --surface0: #313244;
+    --base: #1e1e2e;
+    --mantle: #181825;
+    --crust: #11111b;
+    }   
+body,html {
+    background-color: #181825;
+    color: #cdd6f4;
+}
+.mauve {
+    color: #cba6f7;
+}
+a {
+    color: #89b4fa;
+}
+a:hover {
+    color: #b4befe;
+}
+a:visited {
+    color: #cba6f7;
+}
+input {
+    background: var(--base);
+    color: var(--text),
+}
+button {
+    background: var(--mauve);
+}
+    </style>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font: 13px Helvetica, Arial; }
+    #mainform { background: var(--mantle); padding: 3px; position: fixed; bottom: 0; width: 100%; }
+    #mainform input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+    #mainform button { width: 9%; background: var(--mauve); border: none; padding: 10px; }
+    #messages { list-style-type: none; margin: 0; padding: 0; }
+    #messages li { padding: 5px 10px; background: var(--base); }
+    #messages li:nth-child(odd) { background: var(--surface0); }
+    .username-badge {
+  background-color: var(--overlay0);
+  color: var(--mauve);
+  padding: 4px 8px;
+  text-align: center;
+  border-radius: 5px;
+}
+ /* The Modal (background) */
+ .modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Modal Content/Box */
+.modal-content {
+  background-color: var(--overlay0);
+  margin: 15% auto; /* 15% from the top and centered */
+  padding: 20px;
+  color: var(--text);
+  border: 1px solid var(--overlay1);
+  width: 80%; /* Could be more or less, depending on screen size */
+}
+
+/* The Close Button */
+.close {
+  color: var(--red);
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: var(--rosewater);
+  text-decoration: none;
+  cursor: pointer;
+} 
+  </style>  
+</head>
+  <body>
+    <div id="myModal" class="modal">
+
+        <!-- Modal content -->
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <p>Public key</p>
+       <form action="">
+        <textarea id="publickey" name="publickey"></textarea>
+        <button type="submit" id="connect">Connect</button>
+       </form>
+        </div>
+      
+      </div>
+    <ul id="messages"></ul>
+    <form action="" id="mainform">
+      <input id="m" autocomplete="off" /><button>Send</button>
+    </form>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+        // Get the modal
+var modal = document.getElementById("myModal");
+
+// // Get the button that opens the modal
+// var btn = document.getElementById("myBtn");
+$('#connect').on('click', () => {
+    setUserName(username, document.querySelector('textarea').value)
+modal.style.display = "none";    
+})
+// Get the <span> element that closes the modal
+var span = document.getElementsByClassName("close")[0];
+
+// When the user clicks on <span> (x), close the modal
+span.onclick = function() {
+  modal.style.display = "none";
+location.reload()
+}
+
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = function(event) {
+  if (event.target == modal) {
+    setUserName(username, document.querySelector('textarea').value)
+modal.style.display = "none";
+
+  }
+} 
+      var socket = io();
+      var typing=false;
+var timeout=undefined, typingTimeout = null;
+var user;
+function setUserName(username, pubKey){
+    socket.emit('setUserName', username, pubKey)
+}
+let username = prompt(`Gimmie a username (if u dont provide one a random one will be used)`)
+if(!username) username = `pgp-chat-user-${Math.random().toString().split('.')[1]}`
+// setUserName(username)
+modal.style.display = "block";
+
+socket.on('display', (data)=>{
+  if(data.typing==true)
+    $('.typing').text(`${data.user} is typing...`)
+  else
+    $('.typing').text("")
+})
+$('form').submit(() => {
+    return false;
+})
+      $('#mainform').submit(function(){
+        socket.emit('chat message', $('#m').val(), username);
+        $('#m').val('');
+        return false;
+      });
+      socket.on('chat message', function(msg, username){
+        const li = document.createElement('li')
+        li.innerHTML = `
+        <span class="username-badge">${username}</span> 
+        <span>${msg}</span>
+        `
+        document.getElementById('messages').append(li)
+        // $('#messages').append(
+            // $('<li>')
+            //     .append($('span').text(username))
+            //     .append($('span').text(msg))
+            // );
+      });
+      $(document).ready(function(){
+      $('#m').keypress((e)=>{
+        if(e.which!=13){
+          typing=true
+          socket.emit('typing', {user:user, typing:true})
+          clearTimeout(timeout)
+          timeout=setTimeout(typingTimeout, 3000)
+        }
+      })
+
+      //code explained later
+      socket.on('display', (data)=>{
+        if(data.typing==true)
+          $('.typing').text(`${data.user} is typing...`)
+        else
+          $('.typing').text("")
+      })
+ })
+    </script>
+  </body>
+</html>
